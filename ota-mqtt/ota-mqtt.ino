@@ -5,13 +5,13 @@
 #include <ArduinoOTA.h>   //For OTA
 
 //WIFI configuration
-#define wifi_ssid "MY_SSID"
-#define wifi_password "MY_PASSWORD"
+#define wifi_ssid "nodemcu"
+#define wifi_password "88888888"
 
 //MQTT configuration
-#define mqtt_server "192.168.0.15"
+#define mqtt_server "45.32.16.46"
 #define mqtt_user "esp8266"
-#define mqtt_password "esp8266password"
+#define mqtt_password "fengmushu"
 String mqtt_client_id="ESP8266-";   //This text is concatenated with ChipId to get unique client_id
 //MQTT Topic configuration
 String mqtt_base_topic="/sensor/"+mqtt_client_id+"/data";
@@ -24,6 +24,12 @@ PubSubClient mqtt_client(espClient);
 
 //Necesary to make Arduino Software autodetect OTA device
 WiFiServer TelnetServer(8266);
+
+void OnOtaData(char* topic, byte* payload, unsigned int length) {
+  // handle message arrived
+  Serial.printf("CB: %s %*s\r\n", topic, length, payload);
+  //ESP.updateSketch();
+}
 
 void setup_wifi() {
   delay(10);
@@ -65,6 +71,7 @@ void setup() {
   mqtt_client_id=mqtt_client_id+ESP.getChipId();
   mqtt_base_topic="/sensor/"+mqtt_client_id+"/data";
   mqtt_client.setServer(mqtt_server, 1883);
+  mqtt_client.setCallback(OnOtaData);
   Serial.printf("   Server IP: %s\r\n",mqtt_server);  
   Serial.printf("   Username:  %s\r\n",mqtt_user);
   Serial.println("   Cliend Id: "+mqtt_client_id);  
@@ -83,6 +90,7 @@ void mqtt_reconnect() {
     // if (client.connect("ESP8266Client")) {    
     if (mqtt_client.connect(mqtt_client_id.c_str(), mqtt_user, mqtt_password)) {
       Serial.println("connected");
+      mqtt_client.subscribe((mqtt_base_topic + "/topics").c_str());
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqtt_client.state());
@@ -128,8 +136,9 @@ void loop() {
       temp = newTemp;
       Serial.print("Sent ");
       Serial.print(String(temp).c_str());
-      Serial.println(" to "+mqtt_base_topic+temperature_topic);
-      mqtt_client.publish((mqtt_base_topic+temperature_topic).c_str(), String(temp).c_str(), true);
+      // Serial.println(" to "+mqtt_base_topic+temperature_topic);
+      // mqtt_client.publish((mqtt_base_topic+temperature_topic).c_str(), String(temp).c_str(), true);
+      mqtt_client.publish((mqtt_base_topic+"/topics").c_str(), String(temp).c_str(), true);
     }
 
     if (checkBound(newHum, hum, diff)) {
